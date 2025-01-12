@@ -13,6 +13,9 @@ const char* password = "4321@4321";
 
 WebServer server(80);
 
+// Global variable to store the last captured image
+camera_fb_t * capturedImage = NULL;
+
 // Camera configuration
 #define CAMERA_MODEL_AI_THINKER // Has PSRAM
 // #include "camera_pins.h"
@@ -79,11 +82,14 @@ void initCamera() {
     Serial.printf("Camera init failed with error 0x%x", err);
     ESP.restart();
   }
+  // Turn off the onboard LED initially
+  pinMode(4, OUTPUT);
+  digitalWrite(4, LOW);
 }
 
 // Function to initialize the SD card
 void initSDCard() {
-  if(!SD_MMC.begin()){
+  if(!SD_MMC.begin("/sdcard", true)){
     Serial.println("SD Card Mount Failed");
     return;
   }
@@ -97,12 +103,22 @@ void initSDCard() {
 // Function to handle the root path and return the HTML page
 void handleRoot() {
   String html = "<html><body>";
-  html += "<h1>ESP32-CAM Capture</h1>";
-  html += "<img src=\"/capture\" id=\"stream\" width=\"640\">";
+  html += "<h1>ESP32-CAM Capture and Save</h1>";
+  html += "<img src=\"\" id=\"imageView\" width=\"640\">";
+  html += "<br>";
+  html += "<button onclick=\"captureImage()\">Capture Image</button>";
   html += "<button onclick=\"saveImage()\">Save Image</button>";
   html += "<script>";
+  html += "function captureImage() {";
+  html += "fetch('/capture').then(response => response.blob()).then(blob => {";
+  html += "document.getElementById('imageView').src = URL.createObjectURL(blob);";
+  html += "});";
+  html += "}";
   html += "function saveImage() {";
-  html += "fetch('/save').then(response => response.text()).then(data => alert(data));";
+  html += "var fileName = prompt('Enter the file name to save the image:', 'picture.jpg');";
+  html += "if (fileName) {";
+  html += "fetch('/save?name=' + fileName).then(response => response.text()).then(data => alert(data));";
+  html += "}";
   html += "}";
   html += "</script>";
   html += "</body></html>";
@@ -112,36 +128,49 @@ void handleRoot() {
 
 // Function to capture an image and return it in the response
 void handleCapture() {
-  camera_fb_t * fb = esp_camera_fb_get();
-  if (!fb) {
+  if (capturedImage) {
+    esp_camera_fb_return(capturedImage);
+  }
+  // Turn on the onboard LED
+  digitalWrite(4, HIGH);
+  capturedImage = esp_camera_fb_get();
+  if (!capturedImage) {
     Serial.println("Camera capture failed");
     server.send(500, "text/plain", "Camera capture failed");
+    // Turn off the onboard LED
+    digitalWrite(4, LOW);
     return;
   }
-  server.send_P(200, "image/jpeg", (const char *)fb->buf, fb->len);
-  esp_camera_fb_return(fb);
+
+  // Turn off the onboard LED
+  digitalWrite(4, LOW);
+
+  server.send_P(200, "image/jpeg", (const char *)capturedImage->buf, capturedImage->len);
 }
 
 // Function to save the captured image to the SD card
 void handleSave() {
-  camera_fb_t * fb = esp_camera_fb_get();
-  if (!fb) {
-    Serial.println("Camera capture failed");
-    server.send(500, "text/plain", "Camera capture failed");
+  if (!capturedImage) {
+    server.send(400, "text/plain", "No image to save");
     return;
   }
 
+  if (!server.hasArg("name")) {
+    server.send(400, "text/plain", "Missing file name");
+    return;
+  }
+
+  String fileName = "/" + server.arg("name");
+
   // Save image to SD card
-  File file = SD_MMC.open("/picture.jpg", FILE_WRITE);
+  File file = SD_MMC.open(fileName, FILE_WRITE);
   if(!file){
     Serial.println("Failed to open file in writing mode");
     server.send(500, "text/plain", "Failed to open file");
     return;
   }
-  file.write(fb->buf, fb->len);
+  file.write(capturedImage->buf, capturedImage->len);
   file.close();
-  esp_camera_fb_return(fb);
-
   server.send(200, "text/plain", "Image saved successfully!");
 }
 
