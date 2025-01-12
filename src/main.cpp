@@ -38,7 +38,7 @@ camera_fb_t * capturedImage = NULL;
 #define PCLK_GPIO_NUM     22
 
 // Function to initialize the camera
-void initCamera(framesize_t frameSize) {
+void initCamera() {
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
 
@@ -66,12 +66,12 @@ void initCamera(framesize_t frameSize) {
   config.pixel_format = PIXFORMAT_JPEG;
 
   if (psramFound()) {
-    config.frame_size = frameSize;
+    config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 10;
     config.fb_count = 1;
     Serial.println("PSRAM available");
   } else {
-    config.frame_size = frameSize;
+    config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 12;
     config.fb_count = 1;
     Serial.println("No PSRAM available");
@@ -106,18 +106,6 @@ void handleRoot() {
   html += "<h1>ESP32-CAM Capture and Save</h1>";
   html += "<img src=\"\" id=\"imageView\" width=\"640\">";
   html += "<br>";
-  html += "Frame Size: <select id=\"frameSize\">";
-  html += "<option value=\"13\">UXGA (1600x1200)</option>";
-  html += "<option value=\"12\">SXGA (1280x1024)</option>";
-  html += "<option value=\"10\">XGA (1024x768)</option>";
-  html += "<option value=\"9\">SVGA (800x600)</option>";
-  html += "<option value=\"8\">VGA (640x480)</option>";
-  html += "<option value=\"6\">CIF (400x296)</option>";
-  html += "<option value=\"5\">QVGA (320x240)</option>";
-  html += "<option value=\"3\">HQVGA (240x176)</option>";
-  html += "<option value=\"1\">QQVGA (160x120)</option>";
-  html += "</select>";
-  html += "<br>";
   html += "<button onclick=\"captureImage()\">Capture Image</button>";
   html += "<br><br>";
   html += "File Name: <input type=\"text\" id=\"fileName\" value=\"picture.jpg\">";
@@ -126,8 +114,7 @@ void handleRoot() {
   html += "<div id=\"message\"></div>";
   html += "<script>";
   html += "function captureImage() {";
-  html += "var frameSize = document.getElementById('frameSize').value;";
-  html += "fetch('/capture?frameSize=' + frameSize).then(response => response.blob()).then(blob => {";
+  html += "fetch('/capture').then(response => response.blob()).then(blob => {";
   html += "document.getElementById('imageView').src = URL.createObjectURL(blob);";
   html += "document.getElementById('message').innerText = 'Image captured!';";
   html += "});";
@@ -137,6 +124,7 @@ void handleRoot() {
   html += "fetch('/save?name=' + fileName).then(response => response.text()).then(data => {";
   html += "document.getElementById('message').innerText = data;";
   html += "});";
+  html += "}";
   html += "</script>";
   html += "</body></html>";
 
@@ -151,18 +139,18 @@ void handleCapture() {
     esp_camera_fb_return(capturedImage);
   }
 
-  // Get the frame size from the request
-  if (server.hasArg("frameSize")) {
-    int frameSize = server.arg("frameSize").toInt();
-    Serial.print("Selected frame size: ");
-    Serial.println(frameSize);
+  // // Get the frame size from the request
+  // if (server.hasArg("frameSize")) {
+  //   int frameSize = server.arg("frameSize").toInt();
+  //   Serial.print("Selected frame size: ");
+  //   Serial.println(frameSize);
 
-    // Reinitialize the camera with the selected frame size
-    // Serial.println("trying to reinit the camera");
-    esp_camera_deinit();
-    initCamera((framesize_t)frameSize);
-    Serial.println("Camera reinit done!");
-  }
+  //   // Reinitialize the camera with the selected frame size
+  //   // Serial.println("trying to reinit the camera");
+  //   esp_camera_deinit();
+  //   initCamera((framesize_t)frameSize);
+  //   Serial.println("Camera reinit done!");
+  // }
 
   // Turn on the onboard LED
   digitalWrite(4, HIGH);
@@ -212,7 +200,8 @@ void setup() {
   Serial.begin(115200);
 
   // Initialize camera
-  initCamera(FRAMESIZE_SVGA);
+  // initCamera(FRAMESIZE_SVGA);
+  initCamera();
 
   // Initialize SD card
   initSDCard();
