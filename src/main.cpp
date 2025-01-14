@@ -101,7 +101,7 @@ void initSDCard() {
 }
 
 // Function to handle the root path and return the HTML page
-void handleRootx() {
+void handleRoot() {
   String html = "<html><body>";
   html += "<h1>ESP32-CAM Capture and Save</h1>";
   html += "<img src=\"\" id=\"imageView\" width=\"640\">";
@@ -131,8 +131,72 @@ void handleRootx() {
   server.send(200, "text/html", html);
 }
 // Function to handle the root path and return the HTML page
-void handleRoot() {
+void handleRootx1() {
   String html = "<html><body>";
+  html += "<h1>ESP32-CAM Capture and Save</h1>";
+  html += "<img src=\"\" id=\"imageView\" width=\"640\">";
+  html += "<br>";
+  html += "Frame Size: <select id=\"frameSize\">";
+  html += "<option value=\"10\">UXGA (1600x1200)</option>";
+  html += "<option value=\"9\">SXGA (1280x1024)</option>";
+  html += "<option value=\"8\">XGA (1024x768)</option>";
+  html += "<option value=\"7\">SVGA (800x600)</option>";
+  html += "<option value=\"6\">VGA (640x480)</option>";
+  html += "<option value=\"5\">CIF (400x296)</option>";
+  html += "<option value=\"4\">QVGA (320x240)</option>";
+  html += "<option value=\"3\">HQVGA (240x176)</option>";
+  html += "<option value=\"2\">QQVGA (160x120)</option>";
+  html += "</select>";
+  html += "<br>";
+  html += "<button onclick=\"captureImage()\">Capture Image</button>";
+  html += "<br><br>";
+  html += "File Name: <input type=\"text\" id=\"fileName\" value=\"picture.jpg\">";
+  html += "<button onclick=\"saveImage()\">Save Image</button>";
+  html += "<br><br>";
+  html += "<div id=\"message\"></div>";
+  html += "<script>";
+  html += "function captureImage() {";
+  html += "  var frameSize = document.getElementById('frameSize').value;";
+  html += "  fetch('/capture?frameSize=' + frameSize).then(response => {";
+  html += "    if (!response.ok) { throw new Error('Network response was not ok'); }";
+  html += "    return response.blob();";
+  html += "  }).then(blob => {";
+  html += "    document.getElementById('imageView').src = URL.createObjectURL(blob);";
+  html += "    document.getElementById('message').innerText = 'Image captured!';";
+  html += "  }).catch(error => {";
+  html += "    document.getElementById('message').innerText = 'Failed to capture image: ' + error;";
+  html += "  });";
+  html += "}";
+  html += "function saveImage() {";
+  html += "  var fileName = document.getElementById('fileName').value;";
+  html += "  fetch('/save?name=' + fileName).then(response => {";
+  html += "    if (!response.ok) { throw new Error('Network response was not ok'); }";
+  html += "    return response.text();";
+  html += "  }).then(data => {";
+  html += "    document.getElementById('message').innerText = data;";
+  html += "  }).catch(error => {";
+  html += "    document.getElementById('message').innerText = 'Failed to save image: ' + error;";
+  html += "  });";
+  html += "}";
+  html += "</script>";
+  html += "</body></html>";
+
+  server.send(200, "text/html", html);
+}
+
+// Function to handle the root path and return the HTML page
+void handleRootX2() {
+  String html = "<html><head>";
+  html += "<style>";
+  html += "body { font-family: Arial, sans-serif; text-align: center; margin: 20px; background-color: #f9f9f9; }";
+  html += "h1 { color: #333; }";
+  html += "#imageView { border: 2px solid #ccc; margin: 20px 0; border-radius: 8px; }";
+  html += "select, input[type=text] { font-size: 16px; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; width: 250px; }";
+  html += "button { font-size: 16px; color: white; background-color: #32CD32; padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }";
+  html += "button:hover { background-color: #2ea62e; }";
+  html += "#message { font-size: 16px; color: #555; margin-top: 20px; }";
+  html += "</style>";
+  html += "</head><body>";
   html += "<h1>ESP32-CAM Capture and Save</h1>";
   html += "<img src=\"\" id=\"imageView\" width=\"640\">";
   html += "<br>";
