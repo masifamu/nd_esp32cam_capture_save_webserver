@@ -6,7 +6,7 @@ This project demonstrates how to use the ESP32-CAM to capture images and save th
 
 - Web interface for capturing and saving images.
 - Selectable image frame sizes.
-- Save images with custom file names.
+- Save images with custom file names and a checkbox to select where to save the image (sdcard/browser)
 - Onboard LED control for status indication.
 - implemented the mDNS to avoid typing the IP address in the browser.
 
