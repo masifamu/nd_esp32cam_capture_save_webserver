@@ -130,6 +130,7 @@ void handleRoot() {
   html += "<button onclick=\"captureImage()\">Capture Image</button>";
   html += "<button onclick=\"resetBoard()\">Reboot Board</button>";
   html += "<br><br>";
+  html += "Save to Browser: <input type=\"checkbox\" id=\"saveToBrowser\" value=\"browser\" style=\"margin-right: 20px;\">";
   html += "File Name: <input type=\"text\" id=\"fileName\" value=\"picture.jpg\">";
   html += "<button onclick=\"saveImage()\">Save Image</button>";
   html += "<br><br>";
@@ -169,15 +170,33 @@ void handleRoot() {
   html += "  });";
   html += "}";
   html += "function saveImage() {";
+  html += "  var saveToBrowser = document.getElementById('saveToBrowser').checked;";
   html += "  var fileName = document.getElementById('fileName').value;";
-  html += "  fetch('/save?name=' + fileName).then(response => {";
-  html += "    if (!response.ok) { throw new Error('Network response was not ok, set framesize first'); }";
-  html += "    return response.text();";
-  html += "  }).then(data => {";
-  html += "    document.getElementById('message').innerText = data;";
-  html += "  }).catch(error => {";
-  html += "    document.getElementById('message').innerText = 'Failed to save image: ' + error;";
-  html += "  });";
+  html += "  if (!fileName) {";
+  html += "    document.getElementById('message').innerText = 'Please provide a file name.';";
+  html += "    return;";
+  html += "  }";
+  html += "  if (saveToBrowser) {";
+  html += "    fetch('/download?name=' + encodeURIComponent(fileName)).then(response => {";
+  html += "      if (!response.ok) { throw new Error('Network response was not ok'); }";
+  html += "      return response.blob();";
+  html += "    }).then(blob => {";
+  html += "      var a = document.createElement('a');";
+  html += "      a.href = URL.createObjectURL(blob);";
+  html += "      a.download = fileName;";
+  html += "      a.click();";
+  html += "      document.getElementById('message').innerText = 'Image downloaded successfully!';";
+  html += "    }).catch(error => {";
+  html += "      document.getElementById('message').innerText = 'Failed to download image: ' + error;";
+  html += "    });";
+  html += "  } else {";
+  html += "    fetch('/save?name=' + encodeURIComponent(fileName)).then(response => {";
+  html += "      if (!response.ok) { throw new Error('Network response was not ok'); }";
+  html += "      document.getElementById('message').innerText = 'Image saved to SD card successfully!';";
+  html += "    }).catch(error => {";
+  html += "      document.getElementById('message').innerText = 'Failed to save image: ' + error;";
+  html += "    });";
+  html += "  }";
   html += "}";
   html += "</script>";
   html += "</body></html>";
@@ -185,6 +204,22 @@ void handleRoot() {
   server.send(200, "text/html", html);
 }
 
+// Function to serve the captured image for browser download
+void handleDownload() {
+  if (!capturedImage) {
+    server.send(400, "text/plain", "No image available for download");
+    return;
+  }
+
+  if (!server.hasArg("name")) {
+    server.send(400, "text/plain", "Missing file name");
+    return;
+  }
+
+  String fileName = server.arg("name");
+  server.sendHeader("Content-Disposition", "attachment; filename=" + fileName);
+  server.send_P(200, "image/jpeg", (const char *)capturedImage->buf, capturedImage->len);
+}
 
 // Function to capture an image and return it in the response
 void handleCapture() {
@@ -323,6 +358,8 @@ void setup() {
   server.on("/favicon.ico", HTTP_GET, []() {
     server.send(204); // No Content
   });
+  server.on("/download", HTTP_GET, handleDownload);
+
 
   // Start the server
   server.begin();
