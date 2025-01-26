@@ -1,6 +1,6 @@
 # ESP32-CAM Capture and Save
 
-This project demonstrates how to use the ESP32-CAM to capture images and save them to an SD card. The web interface allows users to select the image frame size, capture images, and save them with a custom file name.
+This project demonstrates how to use the ESP32-CAM to capture images and save them to an SD card or in the browser. The web interface allows users to select the image frame size, capture images, and save them with a custom file name.
 
 ## Features
 
